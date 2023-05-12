@@ -503,7 +503,7 @@ pub async fn resolve<S: AsRef<str>>(
                     Ok(dns) => {
                         let response = Response::new(&dns);
                         if !valid_source_address(addr) {
-                            eprintln!(
+                            log::trace!(
                                 "ignoring response {:?} from {:?} which is not local",
                                 response, addr
                             );
