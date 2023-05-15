@@ -504,7 +504,7 @@ pub async fn resolve<S: AsRef<str>>(
                         let response = Response::new(&dns);
                         if !valid_source_address(addr) {
                             log::trace!(
-                                "ignoring response {:?} from {:?} which is not local",
+                                "ignoring non RFC compliant response {:?} from {:?} which is not local",
                                 response, addr
                             );
                         } else {
