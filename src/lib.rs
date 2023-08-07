@@ -394,7 +394,9 @@ fn make_query(service_name: &str, query_type: QueryType) -> Result<Vec<u8>> {
 /// <https://tools.ietf.org/html/rfc6762>
 fn valid_source_address(addr: SocketAddr) -> bool {
     if addr.port() != MULTICAST_PORT {
-        false
+        // Some useful macOS records are sent through a non standard port, we keep them
+        true
+        // false
     } else {
         /// Computes the masked address bits.
         fn masked(addr: &[u8], mask: &[u8]) -> Vec<u8> {
