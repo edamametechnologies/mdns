@@ -47,6 +47,7 @@ async fn create_socket() -> Result<UdpSocket> {
         Some(socket2::Protocol::UDP),
     )?;
     socket.set_reuse_address(true)?;
+    #[cfg(any(target_os = "macos", target_os = "ios", target_os = "linux"))]
     let _ = socket.set_reuse_port(true);
 
     let addr = sockaddr(Ipv4Addr::UNSPECIFIED, MULTICAST_PORT);
