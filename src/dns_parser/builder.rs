@@ -69,10 +69,14 @@ impl Builder {
     }
     fn write_name(&mut self, name: &str) {
         for part in name.split('.') {
-            assert!(part.len() < 63);
-            let ln = part.len() as u8;
-            self.buf.push(ln);
-            self.buf.extend(part.as_bytes());
+            // DNS labels are limited to 63 bytes (RFC 1035 section 3.1).
+            // Names learned from the network can exceed this; clamp the label
+            // instead of panicking so a malformed or hostile advertisement
+            // cannot abort the caller building the query.
+            let bytes = part.as_bytes();
+            let ln = bytes.len().min(63);
+            self.buf.push(ln as u8);
+            self.buf.extend(&bytes[..ln]);
         }
         self.buf.push(0);
     }
@@ -132,5 +136,20 @@ mod test {
         let result = b"[\xd9\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\
             \x0c_xmpp-server\x04_tcp\x05gmail\x03com\x00\x00!\x00\x01";
         assert_eq!(&bld.build().unwrap()[..], &result[..]);
+    }
+
+    #[test]
+    fn build_query_with_oversized_label_does_not_panic() {
+        // A label longer than the 63-byte DNS limit must be clamped, not
+        // trigger an assertion failure (regression test for the
+        // `part.len() < 63` panic on names learned from the network).
+        let name = format!("{}.local", "a".repeat(120));
+        let mut bld = Builder::new_query(1, true);
+        bld.add_question(&name, false, QT::A, QC::IN);
+        let packet = bld.build().unwrap();
+        // First label length byte (offset 12, right after the 12-byte header)
+        // is clamped to 63, followed by exactly 63 'a' bytes.
+        assert_eq!(packet[12], 63);
+        assert_eq!(&packet[13..13 + 63], &b"a".repeat(63)[..]);
     }
 }
