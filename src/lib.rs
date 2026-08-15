@@ -408,7 +408,19 @@ fn valid_source_address(addr: SocketAddr) -> bool {
         let ifaces = match crate::net_utils::get_if_addrs() {
             Ok(i) => i,
             Err(err) => {
-                log::error!("error while listing local interfaces: {}", err);
+                // Windows GetAdaptersAddresses occasionally reports
+                // ERROR_SUCCESS (os error 0 / "The operation completed
+                // successfully") as a failure. Treat that as a miss, not a
+                // crash-worthy error. Other listing failures are also
+                // environment conditions (interface flap), so keep them at
+                // warn rather than error.
+                if err.raw_os_error() == Some(0) {
+                    log::debug!(
+                        "listing local interfaces returned success-as-error; treating as empty"
+                    );
+                } else {
+                    log::warn!("error while listing local interfaces: {}", err);
+                }
                 return false;
             }
         };
